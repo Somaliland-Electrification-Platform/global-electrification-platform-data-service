@@ -1,9 +1,9 @@
 knex:
   client: "pg"
   connection:
-    host: "localhost"
-    database: "gep-data-service-dev"
-    user: "gep-data-service-dev"
-    password: null
-    port: 15432
+    host: "db"
+    database: "gis"
+    user: "docker"
+    password: "docker"
+    port: 5432
 redisEnabled: false
