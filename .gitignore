@@ -9,4 +9,4 @@ config/production*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 !.elasticbeanstalk/config.yml
-fixtures/b-1/*.csv
+fixtures/bj-1/*.csv
