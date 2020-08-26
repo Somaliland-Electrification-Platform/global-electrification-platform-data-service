@@ -138,10 +138,17 @@ async function prepareScenarioRecords (model, scenarioFilePath) {
   };
 
   const getFilterValueFromRecord = (record, filter, key) => {
+    let value = record[key]
+    if (!isNaN(value)) {
+      value = nanParser(value)
+      if ((value % 1) === 0) {
+        value = parseInt(value)
+      }
+    }
     if (filter.type === 'range') {
-      return nanParser(record[key]);
+      return nanParser(value);
     } else {
-      return record[key];
+      return value;
     }
   };
 
