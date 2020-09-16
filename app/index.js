@@ -369,7 +369,6 @@ server.route({
         newCapacity: 'NewCapacity' + targetYear,
         electrificationStatus: 'ElecStatusIn' + targetYear
       };
-
       const whereBuilder = builder => {
         builder.where('scenarioId', id);
 
@@ -483,20 +482,29 @@ server.route({
         newCapacity: {}
       };
 
+      let finalElecCodeOptions =  null;
+      try {
+        const finalElecCodeFilter = filters.filter(function(filter) {
+          return filter['key'] === 'FinalElecCode';
+        });
+        finalElecCodeOptions = finalElecCodeFilter[0]['options']
+      } catch (e) {
+
+      }
       // Organize features into layers and calculate summary by type
       let featureTypes = [];
       for (const f of features) {
         featureTypes[f.id] = f.electrificationTech;
 
         // Base year, discard null electrification type
-        if (f.elecTypeBaseYear) {
+        if (f.elecTypeBaseYear && (!finalElecCodeOptions || finalElecCodeOptions.includes(f.elecTypeBaseYear))) {
           summaryByType.popConnectedBaseYear[f.elecTypeBaseYear] =
             (summaryByType.popConnectedBaseYear[f.elecTypeBaseYear] || 0) +
             parseFloat(f.popConnectedBaseYear);
         }
 
         // Intermediate year
-        if (f.elecTypeIntermediateYear) {
+        if (f.elecTypeIntermediateYear && (!finalElecCodeOptions || finalElecCodeOptions.includes(f.elecTypeIntermediateYear))) {
           summaryByType.popConnectedIntermediateYear[f.elecTypeIntermediateYear] =
             (summaryByType.popConnectedIntermediateYear[f.elecTypeIntermediateYear] ||
               0) + parseFloat(f.popConnectedIntermediateYear);
