@@ -185,7 +185,8 @@ server.route({
         fid: Joi.number()
       },
       query: {
-        year: Joi.number()
+        year: Joi.number(),
+        extra_field: Joi.string(),
       }
     }
   },
@@ -224,16 +225,25 @@ server.route({
         year = '';
       }
 
+      const extraField = request.query.extra_field ? request.query.extra_field.split(',') : [];
+      const queries = [
+        db.raw(`summary->>'${'InvestmentCost' + year}' as "investmentCost"`),
+        db.raw(`summary->>'${'NewCapacity' + year}' as "newCapacity"`),
+        db.raw(`
+          (summary->>'${'Pop' + year}')::numeric *
+          (summary->>'${'ElecStatusIn' + year}')::numeric
+          as "peopleConnected"
+        `)
+      ]
+      extraField.forEach(field => {
+          if(!['investmentCost','newCapacity','peopleConnected'].includes(field)){
+            queries.push(db.raw(`"filterValues"->>'${field + year}' as "${field}"`))
+          }
+        }
+      )
+
       const feature = await db
-        .select(
-          db.raw(`summary->>'${'InvestmentCost' + year}' as "investmentCost"`),
-          db.raw(`summary->>'${'NewCapacity' + year}' as "newCapacity"`),
-          db.raw(`
-            (summary->>'${'Pop' + year}')::numeric *
-            (summary->>'${'ElecStatusIn' + year}')::numeric
-            as "peopleConnected"
-          `)
-        )
+        .select(...queries)
         .from('scenarios')
         .where('scenarioId', sid)
         .where('featureId', fid)
