@@ -1043,10 +1043,10 @@
     "iso": "SO",
     "name": "Somalia",
     "data": {
-      "electricityAccess": 4,
-      "energyEfficiency": 5.08,
-      "renewableEnergy": 2.29,
-      "overall": 3.79
+      "electricityAccess": 20,
+      "energyEfficiency": 8,
+      "renewableEnergy": 18,
+      "overall": 15
     }
   },
   {
