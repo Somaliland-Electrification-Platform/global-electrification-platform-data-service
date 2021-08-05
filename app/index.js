@@ -87,7 +87,7 @@ server.route({
   options: {
     validate: {
       params: {
-        id: Joi.string().length(2)
+        id: Joi.string().length(3)
       }
     }
   },

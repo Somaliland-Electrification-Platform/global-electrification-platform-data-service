@@ -1,6 +1,6 @@
 exports.up = function (knex) {
   return knex.schema.alterTable('models', function (t) {
-    t.string('country', 2);
+    t.string('country', 3);
   });
 };
 

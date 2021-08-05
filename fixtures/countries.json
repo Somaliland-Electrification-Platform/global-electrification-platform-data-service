@@ -281,6 +281,7 @@
   { "name": "Slovenia", "alpha-2": "SI", "country-code": "705" },
   { "name": "Solomon Islands", "alpha-2": "SB", "country-code": "090" },
   { "name": "Somalia", "alpha-2": "SO", "country-code": "706" },
+  { "name": "Somaliland", "alpha-2": "SOL", "country-code": "706" },
   { "name": "South Africa", "alpha-2": "ZA", "country-code": "710" },
   {
     "name": "South Georgia and the South Sandwich Islands",

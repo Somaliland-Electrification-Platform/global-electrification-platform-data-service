@@ -10,3 +10,4 @@ config/production*
 !.elasticbeanstalk/*.global.yml
 !.elasticbeanstalk/config.yml
 fixtures/*/*.csv
+fixtures/*/*.yml
