@@ -360,6 +360,12 @@ server.route({
           return `(summary->>'InvestmentCost${year}')::numeric * (summary->>'ElecStatusIn${year}')::numeric`;
         })
         .join(' + ');
+      // new capacity
+      const newCapacitySelector = includedSteps
+        .map(year => {
+          return `(summary->>'NewCapacity${year}')::numeric * (summary->>'ElecStatusIn${year}')::numeric`;
+        })
+        .join(' + ');
 
       // Assemble summary keys based on year numbers
       const summaryKeys = {
@@ -435,9 +441,7 @@ server.route({
             SUM(${investmentCostSelector}) as "investmentCost"
           `),
           db.raw(`
-            SUM(
-              (summary->>'${summaryKeys.newCapacity}')::numeric
-            ) as "newCapacity"
+            SUM(${newCapacitySelector}) as "newCapacity"
           `)
         )
         .first()
@@ -448,7 +452,6 @@ server.route({
       Object.keys(summary).forEach(key => {
         summary[key] = _.round(summary[key], 2);
       });
-
 
       // Get steps before the target year. This is used to calculate accumulated
       // investment costs per year
@@ -462,6 +465,12 @@ server.route({
       const finalElecCodePerYear = includedSteps
         .map(year => {
           return `(summary->>'FinalElecCode${year}')::numeric as "FinalElecCode${year}"`
+        })
+
+      // Get new capacity per year
+      const newCapacityPerYear = includedSteps
+        .map(year => {
+          return `(summary->>'NewCapacity${year}')::numeric as "NewCapacity${year}"`
         })
         .join(',');
 
@@ -497,6 +506,7 @@ server.route({
           ),
           db.raw(investmentCostSelectorPerYear),
           db.raw(finalElecCodePerYear),
+          db.raw(newCapacityPerYear),
         )
         .where(whereBuilder)
         .orderBy('featureId')
@@ -545,28 +555,24 @@ server.route({
             parseFloat(f.popConnectedFinalYear);
         }
 
-        // investment per year
         includedSteps
           .map(year => {
-            if (f[`FinalElecCode${year}`] && f[`InvestmentCost${year}`]) {
-              summaryByType.investmentCost[f[`FinalElecCode${year}`]] =
-                (summaryByType.investmentCost[f[`FinalElecCode${year}`]] || 0) +
-                parseFloat(f[`InvestmentCost${year}`]);
+            if(f[`FinalElecCode${year}`]) {
+              // investment cost per year
+              if (f[`InvestmentCost${year}`]) {
+                summaryByType.investmentCost[f[`FinalElecCode${year}`]] =
+                  (summaryByType.investmentCost[f[`FinalElecCode${year}`]] || 0) +
+                  parseFloat(f[`InvestmentCost${year}`]);
+              }
+              // new capacity per year
+              if (f[`NewCapacity${year}`]) {
+                summaryByType.newCapacity[f[`FinalElecCode${year}`]] =
+                  (summaryByType.newCapacity[f[`FinalElecCode${year}`]] || 0) +
+                  parseFloat(f[`NewCapacity${year}`]);
 
+              }
             }
           })
-
-        if (f.electrificationTech) {
-          // Investment for the target year
-          // summaryByType.investmentCost[f.electrificationTech] =
-          //   (summaryByType.investmentCost[f.electrificationTech] || 0) +
-          //   parseFloat(f.investmentCost);
-
-          // Capacity for the target year
-          summaryByType.newCapacity[f.electrificationTech] =
-            (summaryByType.newCapacity[f.electrificationTech] || 0) +
-            parseFloat(f.newCapacity);
-        }
       }
 
       featureTypes = featureTypes.toString();
