@@ -4,6 +4,7 @@ const path = require('path');
 
 const { prepareScenarioRecords } = require('../cli/scenarios');
 const { prepareModelRecord } = require('../cli/models');
+const { prepareScenarioDetailRecord } = require('../cli/scenario_detail');
 
 exports.seed = async function (knex, Promise) {
   const dirList = await readdir(path.join(__dirname, '../fixtures'));
@@ -11,6 +12,9 @@ exports.seed = async function (knex, Promise) {
 
   // Clean scenarios table
   await knex('scenarios').del();
+
+  // Clean scenario_detail table
+  await knex('scenario_detail').del();
 
   // Clean models table
   await knex('models').del();
@@ -28,6 +32,9 @@ exports.seed = async function (knex, Promise) {
       const scenarioPath = path.join(__dirname, '../fixtures', folder, scenarioFile);
       const records = await prepareScenarioRecords(model, scenarioPath);
       await knex.batchInsert('scenarios', records);
+
+      const scenarioDetailRecord = await prepareScenarioDetailRecord(knex, model, scenarioPath);
+      await knex('scenario_detail').insert(scenarioDetailRecord);
     }
 
     const modelRecord = await prepareModelRecord(knex, model);

@@ -577,7 +577,13 @@ server.route({
 
       featureTypes = featureTypes.toString();
 
-      const response = { id, featureTypes, summary, summaryByType };
+      const detail = await db('scenario_detail')
+        .select('filters',)
+        .where('scenarioId', id)
+        .first();
+      const scenarioFilters = detail.filters;
+
+      const response = { id, featureTypes, summary, summaryByType, filters: scenarioFilters };
 
       if (redisEnabled) {
         // Parse scenario results into JSON string
