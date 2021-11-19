@@ -225,18 +225,34 @@ server.route({
         year = '';
       }
 
-      const extraField = request.query.extra_field ? request.query.extra_field.split(',') : [];
+      // Get steps before the target year. This is used to calculate accumulated
+      // investment costs
+      const includedSteps = model.timesteps.filter(y => y <= year);
+      const investmentCostSelector = includedSteps
+        .map(year => {
+          return `(summary->>'${'InvestmentCost' + year}')::numeric * (summary->>'ElecStatusIn${year}')::numeric`;
+        })
+        .join(' + ');
+      const newCapacitySelector = includedSteps
+        .map(year => {
+          return `(summary->>'${'NewCapacity' + year}')::numeric`;
+        })
+        .join(' + ');
       const queries = [
         db.raw(`summary->>'${'InvestmentCost' + year}' as "investmentCost"`),
+        db.raw(`${investmentCostSelector} as "totalInvestmentCost"`),
         db.raw(`summary->>'${'NewCapacity' + year}' as "newCapacity"`),
+        db.raw(`${newCapacitySelector} as "totalNewCapacity"`),
         db.raw(`
           (summary->>'${'Pop' + year}')::numeric *
           (summary->>'${'ElecStatusIn' + year}')::numeric
           as "peopleConnected"
         `)
       ]
+
+      const extraField = request.query.extra_field ? request.query.extra_field.split(',') : [];
       extraField.forEach(field => {
-          if(!['investmentCost','newCapacity','peopleConnected'].includes(field)){
+          if(!['investmentCost','newCapacity','peopleConnected', 'totalInvestmentCost', 'totalNewCapacity'].includes(field)){
             queries.push(db.raw(`"filterValues"->>'${field + year}' as "${field}"`))
           }
         }
@@ -360,6 +376,11 @@ server.route({
           return `(summary->>'InvestmentCost${year}')::numeric * (summary->>'ElecStatusIn${year}')::numeric`;
         })
         .join(' + ');
+      const newCapacitySelector = includedSteps
+        .map(year => {
+          return `(summary->>'${'NewCapacity' + year}')::numeric`;
+        })
+        .join(' + ');
 
       // Assemble summary keys based on year numbers
       const summaryKeys = {
@@ -376,7 +397,6 @@ server.route({
         elecTypeFinalYear: 'FinalElecCode' + finalYear,
 
         electrificationTech: 'FinalElecCode' + targetYear,
-        newCapacity: 'NewCapacity' + targetYear,
         electrificationStatus: 'ElecStatusIn' + targetYear
       };
       const whereBuilder = builder => {
@@ -435,9 +455,7 @@ server.route({
             SUM(${investmentCostSelector}) as "investmentCost"
           `),
           db.raw(`
-            SUM(
-              (summary->>'${summaryKeys.newCapacity}')::numeric
-            ) as "newCapacity"
+            SUM(${newCapacitySelector}) as "newCapacity"
           `)
         )
         .first()
@@ -455,6 +473,14 @@ server.route({
       const investmentCostSelectorPerYear = includedSteps
         .map(year => {
           return `(summary->>'InvestmentCost${year}')::numeric * (summary->>'ElecStatusIn${year}')::numeric as "InvestmentCost${year}"`
+        })
+        .join(',');
+
+      // Get steps before the target year. This is used to calculate accumulated
+      // new capacity per year
+      const newCapacityPerYear = includedSteps
+        .map(year => {
+          return `(summary->>'NewCapacity${year}')::numeric as "NewCapacity${year}"`
         })
         .join(',');
 
@@ -491,11 +517,12 @@ server.route({
             `summary->>'${summaryKeys.electrificationTech}' as "electrificationTech"`
           ),
           db.raw(`(${investmentCostSelector}) as "investmentCost"`),
-          db.raw(`summary->>'${summaryKeys.newCapacity}' as "newCapacity"`),
+          db.raw(`(${newCapacitySelector}) as "newCapacity"`),
           db.raw(
             `summary->>'${summaryKeys.electrificationStatus}' as "electrificationStatus"`
           ),
           db.raw(investmentCostSelectorPerYear),
+          db.raw(newCapacityPerYear),
           db.raw(finalElecCodePerYear),
         )
         .where(whereBuilder)
@@ -555,7 +582,6 @@ server.route({
 
             }
           })
-
         if (f.electrificationTech) {
           // Investment for the target year
           // summaryByType.investmentCost[f.electrificationTech] =
@@ -563,9 +589,20 @@ server.route({
           //   parseFloat(f.investmentCost);
 
           // Capacity for the target year
-          summaryByType.newCapacity[f.electrificationTech] =
-            (summaryByType.newCapacity[f.electrificationTech] || 0) +
-            parseFloat(f.newCapacity);
+          // summaryByType.newCapacity[f.electrificationTech] =
+          //   (summaryByType.newCapacity[f.electrificationTech] || 0) +
+          //   parseFloat(f.newCapacity);
+          // }
+
+          // added capacity accumulated per year
+          includedSteps
+            .map(year => {
+              if (f[`NewCapacity${year}`]) {
+                summaryByType.newCapacity[f.electrificationTech] =
+                  (summaryByType.newCapacity[f.electrificationTech] || 0) +
+                  parseFloat(f[`NewCapacity${year}`]);
+              }
+            })
         }
       }
 
