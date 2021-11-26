@@ -468,6 +468,7 @@ server.route({
         summary[key] = _.round(summary[key], 2);
       });
 
+
       // Get steps before the target year. This is used to calculate accumulated
       // investment costs per year
       const investmentCostSelectorPerYear = includedSteps
@@ -488,12 +489,6 @@ server.route({
       const finalElecCodePerYear = includedSteps
         .map(year => {
           return `(summary->>'FinalElecCode${year}')::numeric as "FinalElecCode${year}"`
-        })
-
-      // Get new capacity per year
-      const newCapacityPerYear = includedSteps
-        .map(year => {
-          return `(summary->>'NewCapacity${year}')::numeric as "NewCapacity${year}"`
         })
         .join(',');
 
